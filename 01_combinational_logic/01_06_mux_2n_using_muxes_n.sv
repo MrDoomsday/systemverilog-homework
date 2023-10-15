@@ -19,10 +19,33 @@ module mux_4_1
 );
 
   // TODO
-
+  wire [3:0] y01, y23;
   // Implement mux_4_1 using three instances of mux_2_1
+  mux_2_1 mux01
+  (
+    .d0(d0), 
+    .d1(d1),
+    .sel(sel[0]),
+    .y(y01)
+  ); 
 
+  mux_2_1 mux23
+  (
+    .d0(d2), 
+    .d1(d3),
+    .sel(sel[0]),
+    .y(y23)
+  ); 
 
+  mux_2_1 mux_fin
+  (
+    .d0(y01), 
+    .d1(y23),
+    .sel(sel[1]),
+    .y(y)
+  ); 
+
+//
 endmodule
 
 //----------------------------------------------------------------------------

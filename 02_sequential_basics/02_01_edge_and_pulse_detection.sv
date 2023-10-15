@@ -31,7 +31,13 @@ module one_cycle_pulse_detector (input clk, rst, a, output detected);
   //
   // Note:
   // See the testbench for the output format ($display task).
+  bit [1:0] shift_reg;
 
+  always_ff @ (posedge clk or posedge rst)
+    if(rst) shift_reg <= 2'h0;
+    else shift_reg <= {shift_reg[0], a};
+
+  assign detected = {shift_reg, a} == 3'b010;
 
 endmodule
 

@@ -57,12 +57,24 @@ module mux_4_1
 );
 
   // TODO
-
+  wire sel0 = ~ sel [0] & ~ sel [1];
+  wire sel1 =   sel [0] & ~ sel [1];
+  wire sel2 = ~ sel [0] &   sel [1];
+  wire sel3 =   sel [0] &   sel [1];
   // Using code for mux_2_1_width_1, mux_2_1_width_2,
   // mux_4_1_width_1 as examples,
   // write code for 4:1 mux using only &, | and ~ operations,
   // and possibly some wire continuous assignments.
 
+  generate 
+    genvar i;
+    for(i = 0; i < 4; i++) begin:gen_mux
+      assign y[i] = d0[i] & sel0 |
+                    d1[i] & sel1 |
+                    d2[i] & sel2 |
+                    d3[i] & sel3;
+    end
+  endgenerate
 
 endmodule
 

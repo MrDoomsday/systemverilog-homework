@@ -26,7 +26,14 @@ module mux_4_1
 
   // Using code for mux_2_1 as an example,
   // write code for 4:1 mux using the "case" statement
-
+  always_comb begin
+    case(sel)
+      2'h0: y = d0;
+      2'h1: y = d1;
+      2'h2: y = d2;
+      2'h3: y = d3;
+    endcase
+  end
 
 endmodule
 

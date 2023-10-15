@@ -31,9 +31,27 @@ module fibonacci_2
   output logic [15:0] num2
 );
 
+
   // Task:
   // Implement a module that generates two fibonacci numbers per cycle
+  /*
+  a(n) = a(n-1) + a(n-2)
+  a(n+1) = a(n) + a(n-1)
 
+  => next step
+  a(n) = a(n-1) + a(n-2)
+  a(n+1) = 2a(n-1) + a(n-2)
+
+  */
+
+  always_ff @ (posedge clk or posedge rst)
+    if(rst) begin
+      num <= 16'd1;
+      num2 <= 16'd1;
+    end
+    else begin
+      {num2, num} <= {{num2[14:0], 1'b0} + num, 16'(num2 + num)};
+    end
 
 endmodule
 
