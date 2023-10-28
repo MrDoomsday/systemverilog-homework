@@ -30,3 +30,6 @@ del /q a.out
 findstr PASS  log.txt
 findstr FAIL  log.txt
 findstr error log.txt
+
+cd 03_04_sqrt_formula_fsms
+run_all_using_iverilog_under_windows.bat
