@@ -5,7 +5,7 @@
 module formula_tb
 # (
     parameter formula = 1,
-              impl    = 1
+              pipe    = 1
 );
 
     `include "formula_1_fn.svh"
@@ -33,17 +33,17 @@ module formula_tb
 
     generate
 
-        if (formula == 1 && impl == 1)
-        begin : if_1_1
-            formula_1_impl_1_top i_formula_1_impl_1_top (.*);
+        if (formula == 1 && pipe)
+        begin : if_formula_1_pipe
+                   formula_1_pipe               i_formula_1_pipe               (.*);
         end
-        else if (formula == 1 && impl == 2)
-        begin : if_1_2
-            formula_1_impl_2_top i_formula_1_impl_2_top (.*);
+        else if (formula == 1 && ! pipe)
+        begin : if_formula_1_pipe_aware_fsm
+                   formula_1_pipe_aware_fsm_top i_formula_1_pipe_aware_fsm_top (.*);
         end
         else
-        begin : if_else
-            formula_2_top i_formula_2_top (.*);
+        begin : if_formula_2_pipe
+                   formula_2_pipe               i_formula_2_pipe               (.*);
         end
 
     endgenerate
@@ -82,13 +82,20 @@ module formula_tb
 
     string test_id;
 
-    initial $sformat (test_id, "%s formula %0d impl %0d:",
-        `__FILE__, formula, impl);
+    initial $sformat (test_id, "%s formula %0d pipe %0d:",
+        `__FILE__, formula, pipe);
 
     //--------------------------------------------------------------------------
     // Driving stimulus
 
+    localparam max_latency       = 16,
+               gap_between_tests = 100;
+
+    bit run_completed = '0;
+
     task run ();
+
+        run_completed = '0;
 
         // Enabling the testbench
         clk_enable = '1; # 1
@@ -126,9 +133,10 @@ module formula_tb
         arg_vld <= '0;
 
         while (~ res_vld)
-            @ (posedge clk);
+             @ (posedge clk);
 
-        // Direct testing - a group of tests
+        // Direct testing
+        // A group of tests back-to-back
 
         for (int i = 0; i < 100; i = i * 3 + 1)
         begin
@@ -140,9 +148,40 @@ module formula_tb
             @ (posedge clk);
             arg_vld <= '0;
 
-            while (~ res_vld)
+            // Wait for non-pipelined module
+
+            while (! pipe & ~ res_vld)
                 @ (posedge clk);
         end
+
+        repeat (max_latency + gap_between_tests)
+            @ (posedge clk);
+
+        // A group of tests with delays
+
+        for (int i = 0; i < 1000; i = i * 3 + 1)
+        begin
+            a       <= i;
+            b       <= i + 1;
+            c       <= i * 2;
+            arg_vld <= '1;
+
+            @ (posedge clk);
+            arg_vld <= '0;
+
+            // Wait for non-pipelined module
+
+            while (! pipe & ~ res_vld)
+                @ (posedge clk);
+
+            // Variable gap in the input data
+
+            repeat (i / 10)
+            @ (posedge clk);
+        end
+
+        repeat (max_latency + gap_between_tests)
+            @ (posedge clk);
 
         // Random testing
 
@@ -156,9 +195,19 @@ module formula_tb
             @ (posedge clk);
             arg_vld <= '0;
 
-            while (~ res_vld)
+            // Wait for non-pipelined module
+
+            while (! pipe & ~ res_vld)
                 @ (posedge clk);
+
+            // Variable gap in the input data
+
+            repeat ($urandom_range (0, max_latency))
+            @ (posedge clk);
         end
+
+        repeat (max_latency + gap_between_tests)
+            @ (posedge clk);
 
         // Disabling the testbench
         clk_enable = '0;
@@ -169,6 +218,8 @@ module formula_tb
             disable fork;
 
         `endif
+
+        run_completed = '1;
 
     endtask
 
@@ -262,12 +313,16 @@ module formula_tb
     begin
         if (queue.size () == 0)
         begin
-            $display ("%s PASS", test_id);
+            if (run_completed)
+                $display ("%s PASS", test_id);
+            else
+                $display ("%s FAIL: did not run or run was not completed",
+                    test_id);
         end
         else
         begin
-            $write ("%s FAIL: data is left sitting in the model queue:",
-                test_id);
+            $write ("%s FAIL: data is left sitting in the model queue (%d left):",
+                test_id, queue.size());
 
             for (int i = 0; i < queue.size (); i ++)
                 $write (" %h", queue [queue.size () - i - 1]);
