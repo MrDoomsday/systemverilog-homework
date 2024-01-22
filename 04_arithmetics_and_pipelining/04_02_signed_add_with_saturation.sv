@@ -19,7 +19,7 @@ endmodule
 module signed_add_with_saturation
 (
   input  [3:0] a, b,
-  output [3:0] sum
+  output reg [3:0] sum
 );
   // Task:
   //
@@ -34,6 +34,22 @@ module signed_add_with_saturation
   // When the result does not fit into 4 bits,
   // and the arguments are negative,
   // the sum should be set to the minimum negative number.
+
+bit [4:0] sum_temp;
+bit overflow;
+
+assign sum_temp = a + b;
+assign overflow = (sum_temp[4] ^ sum_temp[3]) & ~(a[3] ^ b[3]);
+
+always_comb begin
+  if(overflow) begin
+    if(sum_temp[4:3] == 2'b01) sum = 4'b0111;
+    else if(sum_temp[4:3] == 2'b10) sum = 4'b1000;
+    else sum = 4'b0000;
+  end
+  else sum = sum_temp[3:0];
+end
+
 
 
 endmodule
