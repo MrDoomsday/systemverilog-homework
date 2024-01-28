@@ -12,8 +12,8 @@ module formula_1_pipe
     input  [31:0] b,
     input  [31:0] c,
 
-    output        res_vld,
-    output [31:0] res
+    output reg        res_vld,
+    output reg [31:0] res
 );
     // Task:
     //
@@ -40,6 +40,69 @@ module formula_1_pipe
     // in the article by Yuri Panchul published in
     // FPGA-Systems Magazine :: FSM :: Issue ALFA (state_0)
     // You can download this issue from https://fpga-systems.ru/fsm
+localparam pipe_stages = 16;
 
+reg     [15:0]  sqrt_a_result;
+reg             sqrt_a_valid;
+
+reg     [15:0]  sqrt_b_result;
+reg             sqrt_b_valid;
+
+reg     [15:0]  sqrt_c_result;
+reg             sqrt_c_valid;
+
+
+isqrt #(
+    .n_pipe_stages(pipe_stages)
+) isqrt_a (
+    .clk    (clk),
+    .rst    (rst),
+
+    .x_vld  (arg_vld),
+    .x      (a),
+
+    .y_vld  (sqrt_a_valid),
+    .y      (sqrt_a_result)
+);
+
+
+isqrt #(
+    .n_pipe_stages(pipe_stages)
+) isqrt_b (
+    .clk    (clk),
+    .rst    (rst),
+
+    .x_vld  (arg_vld),
+    .x      (b),
+
+    .y_vld  (sqrt_b_valid),
+    .y      (sqrt_b_result)
+);
+
+
+isqrt #(
+    .n_pipe_stages(pipe_stages)
+) isqrt_c (
+    .clk    (clk),
+    .rst    (rst),
+
+    .x_vld  (arg_vld),
+    .x      (c),
+
+    .y_vld  (sqrt_c_valid),
+    .y      (sqrt_c_result)
+);
+
+wire res_vld_next = sqrt_a_valid | sqrt_b_valid | sqrt_c_valid;
+
+//output
+always_ff @ (posedge clk) begin
+    if(res_vld_next) res <= {16'h0, sqrt_a_result} + {16'h0, sqrt_b_result} + {16'h0, sqrt_c_result};
+end
+
+always_ff @ (posedge clk) begin
+    if(rst) res_vld <= 1'b0;
+    else res_vld <= res_vld_next;//если вдруг один из модулей дал сбой - остальные не дадут отвала valid'а
+end
 
 endmodule
