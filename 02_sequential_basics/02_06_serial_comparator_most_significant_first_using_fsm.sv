@@ -86,16 +86,16 @@ module serial_comparator_most_significant_first_using_fsm
       st_equal: if(~a & b) new_state = st_a_less_b;
                 else if(a & ~b) new_state = st_a_greater_b;
       
-      st_a_less_b    : if(a & ~b) new_state = st_a_greater_b;
+      st_a_less_b:  new_state = st_a_less_b;
       
-      st_a_greater_b : if(~a & b) new_state = st_a_less_b;
+      st_a_greater_b : new_state = st_a_greater_b;
 
       default: new_state = st_equal;
     endcase
   end
 
   assign a_eq_b      = (a == b) & (state == st_equal);
-  assign a_less_b    = (~a & b) & (state == st_equal);
+  assign a_less_b    = (~a & b) & (state == st_equal) | (state == st_a_less_b);
   assign a_greater_b = ~a_eq_b & ~a_less_b;
 
 

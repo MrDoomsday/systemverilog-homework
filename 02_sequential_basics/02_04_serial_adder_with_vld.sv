@@ -24,11 +24,7 @@ module serial_adder_with_vld
   // When last is high, the module should output the sum and reset its internal state.
   //
   // When rst is high, the module should reset its internal state.
-/*
-  Какие моменты требовалось бы прояснить (пришлось разбираться самостоятельно)
-  1. Сигнал vld относится к сигналу last или нет? 
-  2. last действителен только при наличии vld или он сам по себе?
-*/
+
 
   bit carry;
   bit [1:0] sum_full;
@@ -39,8 +35,9 @@ module serial_adder_with_vld
 
   always_ff @ (posedge clk)
     if(rst) carry <= 1'b0;
-    else if(last) carry <= 1'b0;
-    else if(vld) carry <= sum_full[1];
+    else if(vld) begin
+      carry <= last ? 1'b0 : sum_full[1];
+    end
 
 
   assign sum = sum_full[0];
