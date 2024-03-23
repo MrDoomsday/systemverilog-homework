@@ -53,8 +53,22 @@ module flip_flop_fifo_empty_full_optimized
     //------------------------------------------------------------------------
     // Task: Add logic for read pointer
     //------------------------------------------------------------------------
-
     // TODO: Add logic for rd_ptr
+    always_ff @ (posedge clk or posedge rst) begin
+        if(rst) begin
+            rd_ptr <= 'h0;
+            rd_ptr_odd_circle <= 1'b0;
+        end
+        else if(pop) begin
+            if(rd_ptr == max_ptr) begin
+                rd_ptr <= 'h0;
+                rd_ptr_odd_circle <= ~rd_ptr_odd_circle;
+            end
+            else begin
+                rd_ptr <= rd_ptr + 'h1;
+            end
+        end
+    end
 
     //------------------------------------------------------------------------
 
@@ -73,5 +87,6 @@ module flip_flop_fifo_empty_full_optimized
     assign empty = equal_ptrs & same_circle;
 
     // Task: Add logic for full output
+    assign full = (wr_ptr == rd_ptr) & (wr_ptr_odd_circle != rd_ptr_odd_circle);
 
 endmodule
