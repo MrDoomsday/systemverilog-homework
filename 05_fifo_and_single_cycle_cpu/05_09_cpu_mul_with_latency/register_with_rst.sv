@@ -15,13 +15,12 @@ module register_with_rst
     input               clk,
     input               rst,
     input        [31:0] d,
+    input               en,
     output logic [31:0] q
 );
 
     always_ff @ (posedge clk)
-        if (rst)
-            q <= '0;
-        else
-            q <= d;
+        if (rst) q <= '0;
+        else if(en) q <= d;
 
 endmodule
