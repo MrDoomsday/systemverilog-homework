@@ -9,34 +9,48 @@
 //  Modified in 2024 by Yuri Panchul & Mike Kuskov
 //  for systemverilog-homework project.
 //
-
+`include "sr_cpu.svh"
 module tb;
 
     logic        clk;
     logic        rst;
 
     wire  [31:0] imAddr;   // instruction memory address
+    wire         imAddr_vld;
     wire  [31:0] imData;   // instruction memory data
+    wire         imData_vld;
 
     logic [ 4:0] regAddr;  // debug access reg address
     wire  [31:0] regData;  // debug access reg data
 
     sr_cpu cpu
     (
-        .clk     ( clk     ),
-        .rst     ( rst     ),
+        .clk     ( clk          ),
+        .rst     ( rst          ),
 
-        .imAddr  ( imAddr  ),
-        .imData  ( imData  ),
+        .imAddr     ( imAddr    ),
+        .imAddr_vld ( imAddr_vld),
+        .imData     ( imData    ),
+        .imData_vld ( imData_vld),
 
-        .regAddr ( regAddr ),
-        .regData ( regData )
+        .regAddr ( regAddr      ),
+        .regData ( regData      )
     );
 
-    instruction_rom # (.SIZE (1024)) rom
-    (
-        .a       ( imAddr  ),
-        .rd      ( imData  )
+
+    instruction_rom #(
+        .SIZE (1024),
+        .LATENCY(`ROM_LATENCY)
+    ) rom (
+        .clk    (clk),
+        .reset_n(~rst),
+        //channel address
+        .a      (imAddr),
+        .a_vld  (imAddr_vld),
+
+        //channel data
+        .rd     (imData),
+        .rd_vld (imData_vld)
     );
 
     //------------------------------------------------------------------------
@@ -120,7 +134,7 @@ module tb;
         else
             $write ("         ");
 
-        if (wasRst & ~ rst & $isunknown (imData))
+        if (wasRst & ~ rst & $isunknown (imData) & imData_vld)
         begin
             $display ("%s FAIL: fetched instruction at address %x contains Xs: %x",
                 `__FILE__, imAddr, imData);
