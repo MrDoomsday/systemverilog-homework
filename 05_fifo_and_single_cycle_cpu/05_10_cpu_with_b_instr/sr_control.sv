@@ -19,6 +19,7 @@ module sr_control
     input        [ 6:0] cmdF7,
     input               aluZero,
     output              pcSrc,
+    output logic        pcJal,
     output logic        regWrite,
     output logic        aluSrc,
     output logic        wdSrc,
@@ -35,6 +36,7 @@ module sr_control
         regWrite    = 1'b0;
         aluSrc      = 1'b0;
         wdSrc       = 1'b0;
+        pcJal       = 1'b0;
         aluControl  = `ALU_ADD;
 
         casez ({ cmdF7, cmdF3, cmdOp })
@@ -49,6 +51,7 @@ module sr_control
 
             { `RVF7_ANY,  `RVF3_BEQ,  `RVOP_BEQ  } : begin branch = 1'b1; condZero = 1'b1; aluControl = `ALU_SUB; end
             { `RVF7_ANY,  `RVF3_BNE,  `RVOP_BNE  } : begin branch = 1'b1; aluControl = `ALU_SUB; end
+            { `RVF7_ANY,  `RVF3_ANY,  `RVOP_JAL  } : begin branch = 1'b1; regWrite = 1'b1; pcJal = 1'b1; end
         endcase
     end
 
