@@ -54,14 +54,14 @@ module sr_control
     wire instr_b = detect_beq | detect_bne;
 
     enum bit [3:0] {
-        FETCH = 0,
-        DECODE = 1,
-        EXECUTE_R = 2,
-        EXECUTE_I = 3,
-        EXECUTE_U = 4,
-        EXECUTE_B = 5,
-        ALUWB = 6,
-        BRANCH = 7
+        FETCH = 4'd0,
+        DECODE = 4'd1,
+        EXECUTE_R = 4'd2,
+        EXECUTE_I = 4'd3,
+        EXECUTE_U = 4'd4,
+        EXECUTE_B = 4'd5,
+        ALUWB = 4'd6,
+        BRANCH = 4'd7
     } state, state_next;
 
     logic aluZero_reg;
@@ -183,6 +183,7 @@ module sr_control
             end
 
             ALUWB: begin
+                mdu_clear = 1'b1;
                 regWrite = 1'b1;
 
                 if(detect_mul) wd_sel = 3'b001;
