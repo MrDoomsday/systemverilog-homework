@@ -10,17 +10,18 @@
 //  for systemverilog-homework project.
 //
 
-module register_with_rst
-(
-    input               clk,
-    input               rst,
-    input        [31:0] d,
-    input               en,
-    output logic [31:0] q
+module register_with_rst #(
+    parameter WIDTH_DATA = 32
+)(
+    input                           clk,
+    input                           rst,
+    input        [WIDTH_DATA-1:0]   d,
+    input                           en,
+    output logic [WIDTH_DATA-1:0]   q
 );
 
     always_ff @ (posedge clk)
-        if (rst) q <= '0;
+        if (rst) q <= {WIDTH_DATA{1'b0}};
         else if(en) q <= d;
 
 endmodule

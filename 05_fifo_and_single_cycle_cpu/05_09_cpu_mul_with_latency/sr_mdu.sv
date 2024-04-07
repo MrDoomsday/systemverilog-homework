@@ -30,8 +30,8 @@ module sr_mdu #(
         .srcB       (srcB),
         .src_vld    (src_vld & (op == 3'b000)),
 
-        .res        (mul_vld),
-        .res_vld    (mul_res)
+        .res        (mul_res),
+        .res_vld    (mul_vld)
     ); 
 
 

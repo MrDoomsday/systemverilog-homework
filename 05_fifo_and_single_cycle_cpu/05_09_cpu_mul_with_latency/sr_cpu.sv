@@ -27,15 +27,12 @@ module sr_cpu
 
     wire            aluZero;
     wire            regWrite;
-    wire            wdSrc;
     wire  [2:0]     aluControl;
     logic           pc_en;
     logic           ir_en;
     logic [31:0]    instr;
-    logic [31:0]    pc_old;//адрес текущей инструкции, которая обрабатыввется процессором
 
     // instruction decode wires
-
     wire [ 6:0] cmdOp;
     wire [ 4:0] rd;
     wire [ 2:0] cmdF3;
@@ -47,26 +44,40 @@ module sr_cpu
     wire [31:0] immU;
 
     // program counter
-
-    wire [31:0] pc;
+    logic   [31:0]  pc, pc_next;
+    logic   [31:0]  pc_old;//адрес текущей инструкции, которая обрабатыввется процессором
+    logic   [1:0]   pc_sel;
+    wire    [31:0]  pc_plus4 = pc_old + 32'd4;
+    wire    [31:0]  pc_branch = pc_old + immB;
 
     // ALU or MDU
-    logic [31:0] rd1_reg, rd2_reg;//выходные данные из регистрового файла
-    logic [1:0] srcA_sel, srcB_sel;//мультиплексоры для входных операндов АЛУ
-    logic [31:0] srcA, srcB;
+    logic [31:0]    rd1_reg, rd2_reg;//выходные данные из регистрового файла
+    logic [1:0]     srcA_sel, srcB_sel;//мультиплексоры для входных операндов АЛУ
+    logic [31:0]    srcA, srcB;
 
-    logic mdu_clear, mdu_vld_in, mdu_vld_out;
-    logic [2:0] mdu_op;
-    logic [31:0] alu_res, mdu_res;
-    logic [31:0] alu_r, mdu_r;//защелкнутые в регистры результаты с АЛУ и блоков умножения
+    logic           mdu_clear, mdu_vld_in, mdu_vld_out;
+    logic [2:0]     mdu_op;
+    logic [31:0]    alu_res, mdu_res;
+    logic [31:0]    alu_r, mdu_r;//защелкнутые в регистры результаты с АЛУ и блоков умножения
 
     //register file
     logic [2:0] wd_sel;
 
-    register_with_rst r_pc (
+    always_comb begin
+        case(pc_sel)
+            2'b00: pc_next = pc_plus4;
+            2'b01: pc_next = alu_r;
+            2'b10: pc_next = pc_branch;
+            default: pc_next = pc_plus4;
+        endcase
+    end
+
+    register_with_rst #(
+        .WIDTH_DATA(32)
+    ) r_pc (
         .clk    (clk    ), 
         .rst    (rst    ),
-        .d      (pcNext ), 
+        .d      (pc_next), 
         .en     (pc_en  ),
         .q      (pc     )
     );
@@ -74,7 +85,9 @@ module sr_cpu
     // program memory access
     assign imAddr = pc >> 2;
 
-    register_with_rst r_instr (
+    register_with_rst #(
+        .WIDTH_DATA(64)
+    ) r_instr (
         .clk    (clk            ), 
         .rst    (rst            ),
         .d      ({pc, imData}   ), 
@@ -121,29 +134,26 @@ module sr_cpu
     );
 
 
-
-    register_with_rst r_regfile (
-        .clk    (clk                ), 
-        .rst    (rst                ),
-        .d      ({rd2, rd1}         ), 
-        .en     (1'b1               ),
-        .q      ({rd2_reg, rd1_reg} )
-    );
-
+    always_ff @ (posedge clk) begin
+        rd2_reg <= rd2;
+        rd1_reg <= rd1;
+    end
 
     // alu
     always_comb begin
         case(srcA_sel)
-            3'b000:     srcA = rd1_reg;
-            3'b001:     srcA = pc_old;
-            default:    srcA = 32'h0;
+            2'b00:     srcA = rd1_reg;
+            2'b01:     srcA = pc_old;
+            2'b10:     srcA = 32'h0;
+            default:   srcA = 32'h0;
         endcase
 
         case(srcB_sel)
-            3'b000:     srcB = rd2_reg;
-            3'b001:     srcB = 32'd4;
-            3'b010:     srcB = immI;
-            default:    srcB = 32'h0;
+            2'b00:     srcB = rd2_reg;
+            2'b01:     srcB = immI;//immediate
+            2'b10:     srcB = immB;//branch
+            2'b11:     srcB = immU;//upper immediate
+            default:   srcB = 32'h0;
         endcase
     end
 
@@ -181,7 +191,6 @@ module sr_cpu
         case(wd_sel)
             3'b000: wd3 = alu_r;
             3'b001: wd3 = mdu_r;
-            3'b010: wd3 = immU;
             default: wd3 = alu_r;
         endcase
     end
@@ -189,19 +198,19 @@ module sr_cpu
     // control
     sr_control sm_control (
         .clk(clk),
-        .reset_n(reset_n),
+        .reset_n(~rst),
 
         .cmdOp      ( cmdOp       ),
         .cmdF3      ( cmdF3       ),
         .cmdF7      ( cmdF7       ),
         .aluZero    ( aluZero     ),
         .regWrite   ( regWrite    ),
-        .wdSrc      ( wdSrc       ),
         .aluControl ( aluControl  ),
 
 
     
         .pc_en      (pc_en      ), 
+        .pc_sel     (pc_sel     ),
         .ir_en      (ir_en      ),
         .srcA_sel   (srcA_sel   ), 
         .srcB_sel   (srcB_sel   ),
